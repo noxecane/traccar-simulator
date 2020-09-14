@@ -1,7 +1,11 @@
 package main
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/go-pg/pg/v9"
+	"github.com/pkg/errors"
 	"github.com/tsaron/anansi"
 	"tsaron.com/traccar-simulator/pkg/config"
 	"tsaron.com/traccar-simulator/pkg/traccar"
@@ -16,6 +20,17 @@ func main() {
 	}
 
 	log := anansi.NewLogger(env.Name)
+
+	var limit uint64
+	limitStr := os.Args[1]
+	if limitStr == "" {
+		limit = 0
+	} else {
+		limit, err = strconv.ParseUint(limitStr, 10, 64)
+		if err != nil {
+			panic(errors.Wrap(err, "failed to parse limit"))
+		}
+	}
 
 	// connect to db
 	var db *pg.DB
@@ -34,6 +49,10 @@ func main() {
 
 	if err := traccar.CreateDevices(db, devices); err != nil {
 		panic(err)
+	}
+
+	if limit != 0 {
+		positions = positions[:limit]
 	}
 
 	for _, p := range positions {
